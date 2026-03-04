@@ -1,0 +1,223 @@
+/* Persona Gen */
+
+.pg-block {
+    margin: 12px 0;
+    padding: 12px;
+    border-radius: 12px;
+    background: transparent;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: var(--messageTextFontSize, var(--mainFontSize));
+}
+
+/* 헤더 */
+.pg-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.pg-block-title {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: var(--SmartThemeBodyColor);
+}
+
+.pg-block-btns {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.pg-block-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    padding: 2px 4px;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+
+.pg-block-btn:hover {
+    opacity: 1;
+}
+
+/* 입력 폼 */
+.pg-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.pg-form-row {
+    display: flex;
+    gap: 8px;
+}
+
+.pg-form-field {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 2px;
+}
+
+.pg-form-field small {
+    font-size: 0.75em;
+    color: var(--SmartThemeQuoteColor);
+}
+
+.pg-form-field input,
+.pg-form-field textarea {
+    background: var(--SmartThemeChatTintColor, var(--SmartThemeBlurTintColor));
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.85em;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.pg-form-field input::placeholder,
+.pg-form-field textarea::placeholder {
+    color: var(--SmartThemeQuoteColor);
+    opacity: 0.5;
+}
+
+.pg-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.pg-btn {
+    padding: 6px 16px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor);
+    cursor: pointer;
+    font-size: 0.82em;
+    transition: background 0.15s;
+}
+
+.pg-btn:hover {
+    background: var(--SmartThemeBorderColor);
+}
+
+.pg-btn-primary {
+    background: var(--SmartThemeQuoteColor);
+    color: var(--SmartThemeBlurTintColor);
+    border-color: var(--SmartThemeQuoteColor);
+}
+
+.pg-btn-primary:hover {
+    opacity: 0.85;
+}
+
+/* 결과 영역 */
+.pg-result {
+    background: var(--SmartThemeChatTintColor, var(--SmartThemeBlurTintColor));
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 8px;
+}
+
+.pg-result-text {
+    font-size: 0.85em;
+    color: var(--SmartThemeBodyColor);
+    line-height: 1.6;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.pg-result-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    justify-content: flex-end;
+}
+
+.pg-result-act {
+    background: none;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 0.78em;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pg-result-act:hover {
+    opacity: 1;
+    background: var(--SmartThemeBorderColor);
+}
+
+/* 수정사항 입력 */
+.pg-revise {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    align-items: flex-end;
+}
+
+.pg-revise textarea {
+    flex: 1;
+    background: var(--SmartThemeChatTintColor, var(--SmartThemeBlurTintColor));
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.82em;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 36px;
+}
+
+.pg-revise textarea::placeholder {
+    color: var(--SmartThemeQuoteColor);
+    opacity: 0.5;
+}
+
+/* 로딩 */
+.pg-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px 20px;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.6;
+}
+
+.pg-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.pg-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--SmartThemeQuoteColor);
+    animation: pg-pulse 1.2s ease-in-out infinite;
+}
+
+.pg-dots span:nth-child(2) { animation-delay: 0.2s; }
+.pg-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pg-pulse {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1.1); }
+}
