@@ -45,6 +45,41 @@
     opacity: 1;
 }
 
+/* 네비게이션 */
+.pg-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8em;
+    color: var(--SmartThemeQuoteColor);
+}
+
+.pg-nav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 2px 6px;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+
+.pg-nav-btn:hover {
+    opacity: 1;
+}
+
+.pg-nav-btn:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
+
+.pg-nav-label {
+    min-width: 30px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
 /* 입력 폼 */
 .pg-form {
     display: flex;
