@@ -484,13 +484,14 @@ function buildPrompt(char, inputs, reviseText, baseResult) {
     if (inputs.appearance) userHints += `- Appearance: ${inputs.appearance}\n`;
     if (inputs.traits) userHints += `- Traits/Personality: ${inputs.traits}\n`;
 
-    let prompt = `You are a character profile writer for roleplay. Based on the character ({{char}}) information provided above, create a matching user character ({{user}}) profile.
+    let prompt = `You are a character profile writer for roleplay. Based on the character ({{char}}) information provided above, create a user character ({{user}}) profile.
 
 CRITICAL RULES:
 1. Analyze the FORMAT and STRUCTURE of {{char}}'s description carefully.
 2. Write {{user}}'s profile in the SAME FORMAT as {{char}}'s description (e.g., if {{char}} uses prose style, use prose; if {{char}} uses structured fields, use the same field names; if {{char}} uses W++, use W++; if {{char}} uses JSON, use JSON).
-3. The {{user}} character should complement {{char}} — someone who would naturally exist in the same world and interact meaningfully with {{char}}.
-4. Any fields NOT specified by the user should be creatively filled in by you to match the setting and {{char}}'s world.
+3. The {{user}} character should fit naturally within the same world, setting, and tone as {{char}}. Use {{char}}'s description to understand the genre, era, atmosphere, and level of detail expected.
+4. Do NOT tie {{user}} directly to {{char}}. Do NOT define a specific relationship with {{char}} (e.g., lover, rival, friend, enemy). Do NOT reference {{char}} by name in the profile. {{user}} should be a standalone character who could work with any character in a similar setting.
+5. Any fields NOT specified by the user should be creatively filled in by you to match the setting and world.
 
 ${langNote}
 ${detailMap[cfg.detailLevel] || detailMap.normal}`;
@@ -498,7 +499,7 @@ ${detailMap[cfg.detailLevel] || detailMap.normal}`;
     if (userHints) {
         prompt += `\n\nUser-specified attributes (use these exactly, fill in everything else):\n${userHints}`;
     } else {
-        prompt += '\n\nNo attributes specified — create everything from scratch to match {{char}}.';
+        prompt += '\n\nNo attributes specified — create everything from scratch to fit the setting and world.';
     }
 
     if (cfg.extraPrompt) {
