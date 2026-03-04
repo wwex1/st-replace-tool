@@ -123,6 +123,19 @@
     opacity: 0.5;
 }
 
+.pg-form-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82em;
+    color: var(--SmartThemeBodyColor);
+    cursor: pointer;
+}
+
+.pg-form-check input[type="checkbox"] {
+    cursor: pointer;
+}
+
 .pg-form-actions {
     display: flex;
     justify-content: flex-end;
