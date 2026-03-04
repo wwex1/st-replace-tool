@@ -282,8 +282,9 @@ function showInputForm() {
     scrollToBlock();
 }
 
-function showLoading() {
+function showLoading(msg) {
     removeBlock();
+    const loadMsg = msg || '페르소나 생성 중...';
     const block = $('<div id="pg-block" class="pg-block"></div>');
     block.html(`
         <div class="pg-block-head">
@@ -291,7 +292,7 @@ function showLoading() {
         </div>
         <div class="pg-loading">
             <div class="pg-dots"><span></span><span></span><span></span></div>
-            <span>페르소나 생성 중...</span>
+            <span>${loadMsg}</span>
         </div>
     `);
     $('#chat').append(block);
@@ -480,7 +481,6 @@ function buildPrompt(char, inputs, reviseText, baseResult) {
     const detailMap = {
         brief: 'Keep the profile concise and compact (around 200-400 characters)',
         normal: 'Write a moderately detailed profile (around 400-800 characters)',
-        detailed: 'Write a comprehensive and detailed profile (around 800-1500 characters)',
     };
 
     let userHints = '';
@@ -516,6 +516,10 @@ ${detailMap[cfg.detailLevel] || detailMap.normal}`;
         prompt += '\n\nNo attributes specified — create everything from scratch to fit the setting and world.';
     }
 
+    if (!inputs.name) {
+        prompt += '\n\n⚠️ The user did not specify a name. You MUST invent an original, fitting name for the character. Do NOT use placeholders like {{user}}, "User", "You", or any generic label.';
+    }
+
     if (cfg.extraPrompt) {
         prompt += `\n\nAdditional instructions:\n${cfg.extraPrompt}`;
     }
@@ -549,7 +553,7 @@ async function translateResult(sourceText) {
     if (generating || !sourceText) return;
 
     generating = true;
-    showLoading();
+    showLoading('번역 중...');
 
     try {
         const targetLang = cfg.lang === 'ko' ? 'English' : '한국어';
