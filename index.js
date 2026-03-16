@@ -325,22 +325,17 @@ jQuery(async () => {
     console.log("[Replace Tool] 🔄 치환 기능 활성화!");
 
     // ═════════════════════════════════════════════
-    // 🌐 파트 2: Translate (번역)
+    // 🌐 파트 2: Translate + Keyword (번역 & 키워드 추출)
     // ═════════════════════════════════════════════
 
     let trModalOpen = false;
     let trTranslating = false;
     let trBgEl = null;
     let trPopupEl = null;
+    let trMode = 'translate'; // 'translate' | 'keyword'
 
-    // ── 번역 호출 ──
-    async function translate(text) {
-        if (!text.trim()) throw new Error('텍스트를 입력하세요.');
-        const isKo2En = settings.trDirection === 'ko2en';
-        const instruction = isKo2En
-            ? `Translate the following Korean text into modern, casual English. Use natural phrasing that sounds like how people actually talk or write today — not stiff or textbook-style. Keep the original tone and nuance. Output ONLY the translation, nothing else.\n\n${text}`
-            : `다음 영어 텍스트를 자연스럽고 현대적인 한국어로 번역해. 딱딱한 번역체 말고, 실제로 사람들이 쓰는 자연스러운 표현으로. 원문의 톤과 뉘앙스를 유지해. 번역문만 출력해.\n\n${text}`;
-
+    // ── API 호출 공통 ──
+    async function callAPI(instruction) {
         if (settings.trApiSource === 'main') {
             const ctx = getContext();
             const { generateRaw } = ctx;
@@ -350,6 +345,36 @@ jQuery(async () => {
             const msgs = [{ role: 'user', content: instruction }];
             return await sendProfileRequest(msgs, 2000);
         }
+    }
+
+    // ── 번역 ──
+    async function translate(text) {
+        if (!text.trim()) throw new Error('텍스트를 입력하세요.');
+        const isKo2En = settings.trDirection === 'ko2en';
+        const instruction = isKo2En
+            ? `Translate the following Korean text into modern, casual English. Use natural phrasing that sounds like how people actually talk or write today — not stiff or textbook-style. Keep the original tone and nuance. Output ONLY the translation, nothing else.\n\n${text}`
+            : `다음 영어 텍스트를 자연스럽고 현대적인 한국어로 번역해. 딱딱한 번역체 말고, 실제로 사람들이 쓰는 자연스러운 표현으로. 원문의 톤과 뉘앙스를 유지해. 번역문만 출력해.\n\n${text}`;
+        return await callAPI(instruction);
+    }
+
+    // ── 키워드 추출 ──
+    async function extractKeywords(text) {
+        if (!text.trim()) throw new Error('텍스트를 입력하세요.');
+        const instruction = `Extract keywords from the following text for use as lorebook trigger keywords in a roleplay context.
+
+Rules:
+- Extract character names, emotions, traits, objects, places, actions, relationships, and any distinctive concepts
+- Output exactly 2 lines:
+  Line 1: Korean keywords separated by commas
+  Line 2: English keywords separated by commas
+- Each line should have the SAME keywords, just in different languages
+- Keep keywords short (1-2 words each)
+- Include both specific terms and broader category terms useful for triggering lorebook entries
+- Output ONLY the two lines of keywords, nothing else
+
+Text:
+${text}`;
+        return await callAPI(instruction);
     }
 
     // ── DOM 생성 (한 번만) ──
@@ -364,40 +389,95 @@ jQuery(async () => {
         trPopupEl.id = 'tr-popup';
 
         const dirLabel = () => settings.trDirection === 'ko2en' ? '한국어 → English' : 'English → 한국어';
-        const placeholder = () => settings.trDirection === 'ko2en' ? '한국어를 입력하세요...' : 'Enter English text...';
+        const placeholder = () => {
+            if (trMode === 'keyword') return '키워드를 추출할 텍스트를 입력하세요...';
+            return settings.trDirection === 'ko2en' ? '한국어를 입력하세요...' : 'Enter English text...';
+        };
 
         trPopupEl.innerHTML = `
             <div class="tr-header">
                 <span class="tr-title">번역</span>
                 <span class="tr-close" title="닫기">✕</span>
             </div>
-            <div class="tr-toggle">${dirLabel()}</div>
+            <div class="tr-mode-tabs">
+                <div class="tr-mode-tab tr-mode-active" data-mode="translate">🌐 번역</div>
+                <div class="tr-mode-tab" data-mode="keyword">🔑 키워드</div>
+            </div>
+            <div class="tr-translate-options">
+                <div class="tr-toggle">${dirLabel()}</div>
+            </div>
             <textarea class="tr-input" placeholder="${placeholder()}" rows="4"></textarea>
-            <div class="tr-btn-translate">번역</div>
+            <div class="tr-btn-exec">번역</div>
             <div class="tr-result-wrap" style="display:none;">
                 <div class="tr-result"></div>
                 <div class="tr-copy" title="복사">📋 복사</div>
             </div>
+            <div class="tr-kw-result-wrap" style="display:none;">
+                <div class="tr-kw-row">
+                    <span class="tr-kw-label">KO</span>
+                    <div class="tr-kw-text" id="tr-kw-ko"></div>
+                    <div class="tr-kw-copy" title="한국어 키워드 복사" data-target="ko">📋</div>
+                </div>
+                <div class="tr-kw-row">
+                    <span class="tr-kw-label">EN</span>
+                    <div class="tr-kw-text" id="tr-kw-en"></div>
+                    <div class="tr-kw-copy" title="영어 키워드 복사" data-target="en">📋</div>
+                </div>
+            </div>
             <div class="tr-loading" style="display:none;">
                 <div class="tr-dots"><span></span><span></span><span></span></div>
-                <span>번역 중...</span>
+                <span class="tr-loading-text">번역 중...</span>
             </div>
         `;
         document.body.appendChild(trPopupEl);
 
-        // 이벤트
+        // 요소 참조
+        const tabs = trPopupEl.querySelectorAll('.tr-mode-tab');
+        const translateOptions = trPopupEl.querySelector('.tr-translate-options');
         const toggleBtn = trPopupEl.querySelector('.tr-toggle');
         const input = trPopupEl.querySelector('.tr-input');
-        const translateBtn = trPopupEl.querySelector('.tr-btn-translate');
+        const execBtn = trPopupEl.querySelector('.tr-btn-exec');
         const resultWrap = trPopupEl.querySelector('.tr-result-wrap');
         const resultDiv = trPopupEl.querySelector('.tr-result');
         const copyBtn = trPopupEl.querySelector('.tr-copy');
+        const kwResultWrap = trPopupEl.querySelector('.tr-kw-result-wrap');
+        const kwKoEl = trPopupEl.querySelector('#tr-kw-ko');
+        const kwEnEl = trPopupEl.querySelector('#tr-kw-en');
         const loading = trPopupEl.querySelector('.tr-loading');
+        const loadingText = trPopupEl.querySelector('.tr-loading-text');
+        const titleEl = trPopupEl.querySelector('.tr-title');
 
+        // 모드 전환
+        function switchMode(mode) {
+            trMode = mode;
+            tabs.forEach(t => t.classList.toggle('tr-mode-active', t.dataset.mode === mode));
+            if (mode === 'keyword') {
+                translateOptions.style.display = 'none';
+                execBtn.textContent = '키워드 추출';
+                titleEl.textContent = '키워드 추출';
+            } else {
+                translateOptions.style.display = '';
+                execBtn.textContent = '번역';
+                titleEl.textContent = '번역';
+            }
+            input.placeholder = placeholder();
+            resultWrap.style.display = 'none';
+            resultDiv.textContent = '';
+            kwResultWrap.style.display = 'none';
+            kwKoEl.textContent = '';
+            kwEnEl.textContent = '';
+        }
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+        });
+
+        // 닫기
         trBgEl.addEventListener('click', closeTrModal);
         trBgEl.addEventListener('touchend', (e) => { e.preventDefault(); closeTrModal(); });
         trPopupEl.querySelector('.tr-close').addEventListener('click', closeTrModal);
 
+        // 방향 토글
         toggleBtn.addEventListener('click', () => {
             settings.trDirection = settings.trDirection === 'ko2en' ? 'en2ko' : 'ko2en';
             persist();
@@ -405,7 +485,8 @@ jQuery(async () => {
             input.placeholder = placeholder();
         });
 
-        translateBtn.addEventListener('click', async () => {
+        // 실행 버튼
+        execBtn.addEventListener('click', async () => {
             if (trTranslating) return;
             const text = input.value.trim();
             if (!text) { toastr.warning('텍스트를 입력하세요.'); return; }
@@ -415,17 +496,28 @@ jQuery(async () => {
 
             trTranslating = true;
             resultWrap.style.display = 'none';
+            loadingText.textContent = trMode === 'keyword' ? '키워드 추출 중...' : '번역 중...';
             loading.style.display = 'flex';
             trPosPopup();
 
             try {
-                const result = await translate(text);
+                const result = trMode === 'keyword' ? await extractKeywords(text) : await translate(text);
                 const cleaned = result?.trim() || '';
                 if (!cleaned) throw new Error('빈 응답');
-                resultDiv.textContent = cleaned;
-                resultWrap.style.display = 'flex';
+
+                if (trMode === 'keyword') {
+                    const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+                    kwKoEl.textContent = lines[0] || '';
+                    kwEnEl.textContent = lines[1] || lines[0] || '';
+                    kwResultWrap.style.display = 'flex';
+                    resultWrap.style.display = 'none';
+                } else {
+                    resultDiv.textContent = cleaned;
+                    resultWrap.style.display = 'flex';
+                    kwResultWrap.style.display = 'none';
+                }
             } catch (err) {
-                toastr.error(`번역 실패: ${err.message}`);
+                toastr.error(`${trMode === 'keyword' ? '키워드 추출' : '번역'} 실패: ${err.message}`);
             } finally {
                 loading.style.display = 'none';
                 trTranslating = false;
@@ -433,16 +525,30 @@ jQuery(async () => {
             }
         });
 
+        // 키보드
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); translateBtn.click(); }
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); execBtn.click(); }
             if (e.key === 'Escape') { e.preventDefault(); closeTrModal(); }
         });
 
+        // 복사
         copyBtn.addEventListener('click', async () => {
             const ok = await copyToClipboard(resultDiv.textContent);
             if (ok) toastr.success('복사됨');
         });
 
+        // 키워드 줄별 복사
+        trPopupEl.querySelectorAll('.tr-kw-copy').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const target = btn.dataset.target;
+                const text = target === 'ko' ? kwKoEl.textContent : kwEnEl.textContent;
+                if (!text) return;
+                const ok = await copyToClipboard(text);
+                if (ok) toastr.success(target === 'ko' ? '한국어 키워드 복사됨' : '영어 키워드 복사됨');
+            });
+        });
+
+        // viewport
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', () => { if (trModalOpen) trPosPopup(); });
             window.visualViewport.addEventListener('scroll', () => { if (trModalOpen) trPosPopup(); });
@@ -492,13 +598,18 @@ jQuery(async () => {
         if (trPopupEl) {
             trPopupEl.classList.remove('tr-show');
             trPopupEl.style.display = 'none';
-            // 입력·결과 초기화
             const input = trPopupEl.querySelector('.tr-input');
             const resultWrap = trPopupEl.querySelector('.tr-result-wrap');
             const resultDiv = trPopupEl.querySelector('.tr-result');
             if (input) input.value = '';
             if (resultDiv) resultDiv.textContent = '';
             if (resultWrap) resultWrap.style.display = 'none';
+            const kwWrap = trPopupEl.querySelector('.tr-kw-result-wrap');
+            const kwKo = trPopupEl.querySelector('#tr-kw-ko');
+            const kwEn = trPopupEl.querySelector('#tr-kw-en');
+            if (kwKo) kwKo.textContent = '';
+            if (kwEn) kwEn.textContent = '';
+            if (kwWrap) kwWrap.style.display = 'none';
         }
     }
 
