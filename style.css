@@ -232,6 +232,43 @@
 }
 .tr-close:hover { background: rgba(255, 255, 255, 0.1); }
 
+/* 모드 탭 */
+.tr-mode-tabs {
+    display: flex;
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+.tr-mode-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #e8e8e8;
+    color: #666;
+    transition: background 0.15s, color 0.15s;
+    user-select: none;
+}
+.tr-mode-tab:not(:last-child) {
+    border-right: 1px solid #ccc;
+}
+.tr-mode-tab:hover {
+    background: #ddd;
+}
+.tr-mode-tab.tr-mode-active {
+    background: #fff;
+    color: #222;
+}
+
+.tr-translate-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .tr-toggle {
     background: #e8e8e8;
     border: 1px solid #ccc;
@@ -269,7 +306,7 @@
     border-color: var(--SmartThemeQuoteColor, #555);
 }
 
-.tr-btn-translate {
+.tr-btn-exec {
     background: #e0e0e0;
     border: 1px solid #bbb;
     color: #222;
@@ -282,7 +319,7 @@
     text-align: center;
     user-select: none;
 }
-.tr-btn-translate:hover { background: #d0d0d0; }
+.tr-btn-exec:hover { background: #d0d0d0; }
 
 .tr-result-wrap {
     display: flex;
@@ -313,6 +350,51 @@
     font-size: 16px;
 }
 .tr-copy:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* 키워드 결과 */
+.tr-kw-result-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.tr-kw-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #f5f5f5;
+    border: 1px solid var(--SmartThemeBorderColor, #333);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.tr-kw-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: #888;
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+.tr-kw-text {
+    flex: 1;
+    color: #222;
+    -webkit-text-fill-color: #222;
+    font-size: 13px;
+    line-height: 1.5;
+    word-break: break-word;
+    user-select: text;
+}
+.tr-kw-copy {
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    font-size: 15px;
+    user-select: none;
+    transition: background 0.15s;
+}
+.tr-kw-copy:hover { background: rgba(0, 0, 0, 0.08); }
 
 .tr-loading {
     display: flex;
