@@ -697,8 +697,9 @@ ${text}`;
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
-                <hr />
-                <h4 style="margin:6px 0 4px;">기능 활성화</h4>
+                <label style="margin-top:8px;display:block;font-size:0.9em;">API 소스</label>
+                <select id="rt-tr-source" class="text_pole" style="width:100%;margin-top:4px;"></select>
+                <h4 style="margin:12px 0 4px;">기능 활성화</h4>
                 <label class="checkbox_label">
                     <input type="checkbox" id="rt-setting-rt-enabled" />
                     <span>🔄 텍스트 치환</span>
@@ -711,10 +712,6 @@ ${text}`;
                     <input type="checkbox" id="rt-setting-tr-enabled" />
                     <span>🌐 간단 번역</span>
                 </label>
-                <hr />
-                <h4 style="margin:6px 0 4px;">API 설정</h4>
-                <label style="display:block;font-size:0.9em;">API 소스</label>
-                <select id="rt-tr-source" class="text_pole" style="width:100%;margin-top:4px;"></select>
             </div>
         </div>
     </div>`;
