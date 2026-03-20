@@ -373,17 +373,18 @@ jQuery(async () => {
     // ── 키워드 추출 ──
     async function extractKeywords(text) {
         if (!text.trim()) throw new Error('텍스트를 입력하세요.');
-        const instruction = `Extract keywords from the following text for use as lorebook trigger keywords in a roleplay context.
+        const instruction = `Extract the most important keywords from the following text for lorebook triggers in a roleplay context.
 
 Rules:
-- Extract character names, emotions, traits, objects, places, actions, relationships, and any distinctive concepts
+- EXCLUDE the main character ({{char}}) and player character ({{user}}) names — they are already default triggers
+- Rank by importance: proper nouns (NPC names, family names, place names) > titles/roles/relationships > unique objects/concepts > location types > traits/dispositions > emotions/actions
+- Select up to 15 keywords maximum. Prioritize distinctive, specific triggers over generic ones.
 - Output exactly 2 lines:
   Line 1: Korean keywords separated by commas
   Line 2: English keywords separated by commas
-- Each line should have the SAME keywords, just in different languages
-- Keep keywords short (1-2 words each)
-- Include both specific terms and broader category terms useful for triggering lorebook entries
-- Output ONLY the two lines of keywords, nothing else
+- Both lines must have the SAME keywords in the SAME order, just in different languages
+- Keep each keyword short (1-2 words)
+- Output ONLY the two lines, nothing else
 
 Text:
 ${text}`;
