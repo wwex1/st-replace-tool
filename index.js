@@ -373,16 +373,13 @@ jQuery(async () => {
     // ── 키워드 추출 ──
     async function extractKeywords(text) {
         if (!text.trim()) throw new Error('텍스트를 입력하세요.');
-        const instruction = `You are a lorebook keyword extractor for a roleplay system. Lorebook entries activate when their trigger keywords appear in conversation. Your job is to pick keywords that would reliably trigger the RIGHT lorebook entry — not every entry.
+        const instruction = `You are a lorebook keyword extractor for a roleplay system. Extract keywords that would work as lorebook trigger keywords.
 
 Rules:
 - EXCLUDE {{char}} and {{user}} names
-- ONLY extract keywords that are SPECIFIC to this text. Ask yourself: "Would this word uniquely point to THIS entry and not dozens of others?"
-  - GOOD: character names (Serenia, Casian), faction names (House of Estel), unique terms (Silver Oath), specific places (Thornwall Keep)
-  - BAD: generic words that appear everywhere (princess, palace, kingdom, noble, queen, king, sword, magic)
-- Proper nouns and unique compound terms are almost always good triggers
-- Generic role words (왕, 공주, 기사) are only useful if the text is specifically ABOUT that concept as its main topic
-- Up to 15 keywords max. Fewer is fine if the text doesn't have many distinctive terms.
+- EXCLUDE emotions (e.g. anger, coldness, jealousy) and personality traits/dispositions (e.g. progressive, conservative, gentle, cold)
+- INCLUDE: character/NPC names, family/faction names, place names, titles/roles (king, princess, knight), objects, locations, relationships, actions, unique terms and concepts
+- Up to 15 keywords max. Fewer is fine.
 - Output exactly 2 lines, nothing else:
   Line 1: Korean keywords, comma-separated
   Line 2: English keywords, comma-separated (1:1 match with Line 1, same order)
