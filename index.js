@@ -6,6 +6,8 @@ const MODULE_NAME = "st-replace-tool";
 
 const TR_DEFAULTS = {
     trEnabled: true,
+    kwEnabled: true,
+    rtEnabled: true,
     trApiSource: 'main',
     trConnectionProfileId: '',
     trDirection: 'ko2en',
@@ -315,35 +317,46 @@ jQuery(async () => {
         });
     }
 
+    // 치환 버튼 표시/숨기기
+    function updateRtButtonVisibility() {
+        document.querySelectorAll('.rt-mes-btn').forEach(btn => {
+            btn.style.display = settings.rtEnabled ? '' : 'none';
+        });
+    }
+
     const chat = document.getElementById("chat");
     if (chat) {
-        const observer = new MutationObserver(upsertReplaceButtons);
+        const observer = new MutationObserver(() => {
+            upsertReplaceButtons();
+            updateRtButtonVisibility();
+        });
         observer.observe(chat, { childList: true, subtree: true });
         upsertReplaceButtons();
+        updateRtButtonVisibility();
     }
 
     console.log("[Replace Tool] 🔄 치환 기능 활성화!");
 
     // ═════════════════════════════════════════════
-    // 🌐 파트 2: Translate + Keyword (번역 & 키워드 추출)
+    // 🌐 파트 2: Translate + Keyword (간단 번역 & 키워드 추출)
     // ═════════════════════════════════════════════
 
     let trModalOpen = false;
     let trTranslating = false;
     let trBgEl = null;
     let trPopupEl = null;
-    let trMode = 'translate'; // 'translate' | 'keyword'
+    let trMode = 'keyword'; // 'translate' | 'keyword' — 키워드가 기본
 
     // ── API 호출 공통 ──
-    async function callAPI(instruction) {
+    async function callAPI(instruction, maxTokens = 2000) {
         if (settings.trApiSource === 'main') {
             const ctx = getContext();
             const { generateRaw } = ctx;
             if (!generateRaw) throw new Error('generateRaw not available');
-            return await generateRaw({ systemPrompt: '', prompt: instruction, streaming: false });
+            return await generateRaw({ systemPrompt: '', prompt: instruction, streaming: false, maxTokens });
         } else {
             const msgs = [{ role: 'user', content: instruction }];
-            return await sendProfileRequest(msgs, 2000);
+            return await sendProfileRequest(msgs, maxTokens);
         }
     }
 
@@ -354,27 +367,29 @@ jQuery(async () => {
         const instruction = isKo2En
             ? `Translate the following Korean text into modern, casual English. Use natural phrasing that sounds like how people actually talk or write today — not stiff or textbook-style. Keep the original tone and nuance. Output ONLY the translation, nothing else.\n\n${text}`
             : `다음 영어 텍스트를 자연스럽고 현대적인 한국어로 번역해. 딱딱한 번역체 말고, 실제로 사람들이 쓰는 자연스러운 표현으로. 원문의 톤과 뉘앙스를 유지해. 번역문만 출력해.\n\n${text}`;
-        return await callAPI(instruction);
+        return await callAPI(instruction, 4000);
     }
 
     // ── 키워드 추출 ──
     async function extractKeywords(text) {
         if (!text.trim()) throw new Error('텍스트를 입력하세요.');
-        const instruction = `Extract keywords from the following text for use as lorebook trigger keywords in a roleplay context.
+        const instruction = `You are a lorebook keyword extractor for a roleplay system. Lorebook entries activate when their trigger keywords appear in conversation. Your job is to pick keywords that would reliably trigger the RIGHT lorebook entry — not every entry.
 
 Rules:
-- Extract character names, emotions, traits, objects, places, actions, relationships, and any distinctive concepts
-- Output exactly 2 lines:
-  Line 1: Korean keywords separated by commas
-  Line 2: English keywords separated by commas
-- Each line should have the SAME keywords, just in different languages
-- Keep keywords short (1-2 words each)
-- Include both specific terms and broader category terms useful for triggering lorebook entries
-- Output ONLY the two lines of keywords, nothing else
+- EXCLUDE {{char}} and {{user}} names
+- ONLY extract keywords that are SPECIFIC to this text. Ask yourself: "Would this word uniquely point to THIS entry and not dozens of others?"
+  - GOOD: character names (Serenia, Casian), faction names (House of Estel), unique terms (Silver Oath), specific places (Thornwall Keep)
+  - BAD: generic words that appear everywhere (princess, palace, kingdom, noble, queen, king, sword, magic)
+- Proper nouns and unique compound terms are almost always good triggers
+- Generic role words (왕, 공주, 기사) are only useful if the text is specifically ABOUT that concept as its main topic
+- Up to 15 keywords max. Fewer is fine if the text doesn't have many distinctive terms.
+- Output exactly 2 lines, nothing else:
+  Line 1: Korean keywords, comma-separated
+  Line 2: English keywords, comma-separated (1:1 match with Line 1, same order)
 
 Text:
 ${text}`;
-        return await callAPI(instruction);
+        return await callAPI(instruction, 4000);
     }
 
     // ── DOM 생성 (한 번만) ──
@@ -394,20 +409,21 @@ ${text}`;
             return settings.trDirection === 'ko2en' ? '한국어를 입력하세요...' : 'Enter English text...';
         };
 
+        // 키워드 탭이 기본이므로 초기 상태 반영
         trPopupEl.innerHTML = `
             <div class="tr-header">
-                <span class="tr-title">번역</span>
+                <span class="tr-title">키워드 추출</span>
                 <span class="tr-close" title="닫기">✕</span>
             </div>
             <div class="tr-mode-tabs">
-                <div class="tr-mode-tab tr-mode-active" data-mode="translate">🌐 번역</div>
                 <div class="tr-mode-tab" data-mode="keyword">🔑 키워드</div>
+                <div class="tr-mode-tab" data-mode="translate">🌐 간단 번역</div>
             </div>
-            <div class="tr-translate-options">
+            <div class="tr-translate-options" style="display:none;">
                 <div class="tr-toggle">${dirLabel()}</div>
             </div>
             <textarea class="tr-input" placeholder="${placeholder()}" rows="4"></textarea>
-            <div class="tr-btn-exec">번역</div>
+            <div class="tr-btn-exec">키워드 추출</div>
             <div class="tr-result-wrap" style="display:none;">
                 <div class="tr-result"></div>
                 <div class="tr-copy" title="복사">📋 복사</div>
@@ -426,7 +442,7 @@ ${text}`;
             </div>
             <div class="tr-loading" style="display:none;">
                 <div class="tr-dots"><span></span><span></span><span></span></div>
-                <span class="tr-loading-text">번역 중...</span>
+                <span class="tr-loading-text">키워드 추출 중...</span>
             </div>
         `;
         document.body.appendChild(trPopupEl);
@@ -447,6 +463,17 @@ ${text}`;
         const loadingText = trPopupEl.querySelector('.tr-loading-text');
         const titleEl = trPopupEl.querySelector('.tr-title');
 
+        // 탭 활성화 갱신 (비활성화된 기능 반영)
+        function updateTabVisibility() {
+            tabs.forEach(t => {
+                if (t.dataset.mode === 'keyword') {
+                    t.style.display = settings.kwEnabled ? '' : 'none';
+                } else if (t.dataset.mode === 'translate') {
+                    t.style.display = settings.trEnabled ? '' : 'none';
+                }
+            });
+        }
+
         // 모드 전환
         function switchMode(mode) {
             trMode = mode;
@@ -458,7 +485,7 @@ ${text}`;
             } else {
                 translateOptions.style.display = '';
                 execBtn.textContent = '번역';
-                titleEl.textContent = '번역';
+                titleEl.textContent = '간단 번역';
             }
             input.placeholder = placeholder();
             resultWrap.style.display = 'none';
@@ -471,6 +498,10 @@ ${text}`;
         tabs.forEach(tab => {
             tab.addEventListener('click', () => switchMode(tab.dataset.mode));
         });
+
+        // 초기 탭 활성화 (키워드 기본)
+        updateTabVisibility();
+        switchMode('keyword');
 
         // 닫기
         trBgEl.addEventListener('click', closeTrModal);
@@ -553,6 +584,10 @@ ${text}`;
             window.visualViewport.addEventListener('resize', () => { if (trModalOpen) trPosPopup(); });
             window.visualViewport.addEventListener('scroll', () => { if (trModalOpen) trPosPopup(); });
         }
+
+        // updateTabVisibility를 외부에서 호출 가능하게 저장
+        trPopupEl._updateTabVisibility = updateTabVisibility;
+        trPopupEl._switchMode = switchMode;
     }
 
     function trPosPopup() {
@@ -575,9 +610,17 @@ ${text}`;
 
     function openTrModal() {
         if (trModalOpen) return;
-        if (!settings.trEnabled) return;
+        // 둘 다 꺼져있으면 열지 않음
+        if (!settings.kwEnabled && !settings.trEnabled) return;
         trModalOpen = true;
         ensureTrDOM();
+
+        // 탭 가시성 갱신
+        if (trPopupEl._updateTabVisibility) trPopupEl._updateTabVisibility();
+
+        // 기본 모드 결정: 키워드 우선, 키워드 꺼져있으면 번역
+        const defaultMode = settings.kwEnabled ? 'keyword' : 'translate';
+        if (trPopupEl._switchMode) trPopupEl._switchMode(defaultMode);
 
         const resultWrap = trPopupEl.querySelector('.tr-result-wrap');
         const loading = trPopupEl.querySelector('.tr-loading');
@@ -613,18 +656,19 @@ ${text}`;
         }
     }
 
-    // ── 확장 메뉴 버튼 ──
+    // ── 확장 메뉴 버튼 (키워드로 변경) ──
     function updateTrMenuVisibility() {
         const btn = document.getElementById('tr_menu_btn');
-        if (btn) btn.style.display = settings.trEnabled ? '' : 'none';
+        // 키워드 또는 번역 중 하나라도 켜져있으면 표시
+        if (btn) btn.style.display = (settings.kwEnabled || settings.trEnabled) ? '' : 'none';
     }
 
     const trMenuBtn = document.createElement('div');
     trMenuBtn.id = 'tr_menu_btn';
     trMenuBtn.className = 'list-group-item flex-container flexGap5 interactable';
-    trMenuBtn.title = '번역';
-    trMenuBtn.innerHTML = '<i class="fa-solid fa-language"></i> 번역';
-    trMenuBtn.style.display = settings.trEnabled ? '' : 'none';
+    trMenuBtn.title = '키워드';
+    trMenuBtn.innerHTML = '<i class="fa-solid fa-key"></i> 키워드';
+    trMenuBtn.style.display = (settings.kwEnabled || settings.trEnabled) ? '' : 'none';
     trMenuBtn.addEventListener('click', () => {
         $('#extensionsMenu').hide();
         openTrModal();
@@ -655,27 +699,54 @@ ${text}`;
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
-                <hr />
-                <h4 style="margin:6px 0 4px;">🌐 번역 설정</h4>
-                <label class="checkbox_label">
-                    <input type="checkbox" id="rt-tr-enabled" />
-                    <span>번역 버튼 표시</span>
-                </label>
-                <label style="margin-top:6px;display:block;font-size:0.9em;">API 소스</label>
+                <label style="margin-top:8px;display:block;font-size:0.9em;">API 소스</label>
                 <select id="rt-tr-source" class="text_pole" style="width:100%;margin-top:4px;"></select>
+                <h4 style="margin:12px 0 4px;">기능 활성화</h4>
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rt-setting-rt-enabled" />
+                    <span>🔄 텍스트 치환</span>
+                </label>
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rt-setting-kw-enabled" />
+                    <span>🔑 키워드 추출</span>
+                </label>
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rt-setting-tr-enabled" />
+                    <span>🌐 간단 번역</span>
+                </label>
             </div>
         </div>
     </div>`;
     $("#extensions_settings2").append(settingsHtml);
 
+    // 치환 활성화 체크박스
+    const rtEnabledEl = document.getElementById('rt-setting-rt-enabled');
+    rtEnabledEl.checked = settings.rtEnabled;
+    rtEnabledEl.addEventListener('change', function () {
+        settings.rtEnabled = this.checked;
+        persist();
+        updateRtButtonVisibility();
+        toastr.info(settings.rtEnabled ? '치환 활성화됨' : '치환 비활성화됨');
+    });
+
+    // 키워드 활성화 체크박스
+    const kwEnabledEl = document.getElementById('rt-setting-kw-enabled');
+    kwEnabledEl.checked = settings.kwEnabled;
+    kwEnabledEl.addEventListener('change', function () {
+        settings.kwEnabled = this.checked;
+        persist();
+        updateTrMenuVisibility();
+        toastr.info(settings.kwEnabled ? '키워드 추출 활성화됨' : '키워드 추출 비활성화됨');
+    });
+
     // 번역 활성화 체크박스
-    const trEnabledEl = document.getElementById('rt-tr-enabled');
+    const trEnabledEl = document.getElementById('rt-setting-tr-enabled');
     trEnabledEl.checked = settings.trEnabled;
     trEnabledEl.addEventListener('change', function () {
         settings.trEnabled = this.checked;
         persist();
         updateTrMenuVisibility();
-        toastr.info(settings.trEnabled ? '번역 활성화됨' : '번역 비활성화됨');
+        toastr.info(settings.trEnabled ? '간단 번역 활성화됨' : '간단 번역 비활성화됨');
     });
 
     // API 소스 드롭다운
