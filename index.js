@@ -348,15 +348,15 @@ jQuery(async () => {
     let trMode = 'keyword'; // 'translate' | 'keyword' — 키워드가 기본
 
     // ── API 호출 공통 ──
-    async function callAPI(instruction) {
+    async function callAPI(instruction, maxTokens = 2000) {
         if (settings.trApiSource === 'main') {
             const ctx = getContext();
             const { generateRaw } = ctx;
             if (!generateRaw) throw new Error('generateRaw not available');
-            return await generateRaw({ systemPrompt: '', prompt: instruction, streaming: false });
+            return await generateRaw({ systemPrompt: '', prompt: instruction, streaming: false, maxTokens });
         } else {
             const msgs = [{ role: 'user', content: instruction }];
-            return await sendProfileRequest(msgs, 2000);
+            return await sendProfileRequest(msgs, maxTokens);
         }
     }
 
@@ -367,7 +367,7 @@ jQuery(async () => {
         const instruction = isKo2En
             ? `Translate the following Korean text into modern, casual English. Use natural phrasing that sounds like how people actually talk or write today — not stiff or textbook-style. Keep the original tone and nuance. Output ONLY the translation, nothing else.\n\n${text}`
             : `다음 영어 텍스트를 자연스럽고 현대적인 한국어로 번역해. 딱딱한 번역체 말고, 실제로 사람들이 쓰는 자연스러운 표현으로. 원문의 톤과 뉘앙스를 유지해. 번역문만 출력해.\n\n${text}`;
-        return await callAPI(instruction);
+        return await callAPI(instruction, 4000);
     }
 
     // ── 키워드 추출 ──
@@ -376,19 +376,17 @@ jQuery(async () => {
         const instruction = `Extract the most important keywords from the following text for lorebook triggers in a roleplay context.
 
 Rules:
-- EXCLUDE the main character ({{char}}) and player character ({{user}}) names — they are already default triggers
+- EXCLUDE the main character ({{char}}) and player character ({{user}}) names
 - Rank by importance: proper nouns (NPC names, family names, place names) > titles/roles/relationships > unique objects/concepts > location types > traits/dispositions > emotions/actions
-- Select up to 15 keywords maximum. Prioritize distinctive, specific triggers over generic ones.
-- Output exactly 2 lines:
-  Line 1: Korean keywords separated by commas
-  Line 2: English keywords separated by commas
-- Both lines must have the SAME keywords in the SAME order, just in different languages
-- Keep each keyword short (1-2 words)
-- Output ONLY the two lines, nothing else
+- Select up to 15 keywords. Prioritize distinctive, specific triggers over generic ones.
+- Output exactly 2 lines, nothing else:
+  Line 1: up to 15 Korean keywords, comma-separated
+  Line 2: up to 15 English keywords, comma-separated (1:1 match with Line 1, same order)
+- Keep each keyword 1-2 words.
 
 Text:
 ${text}`;
-        return await callAPI(instruction);
+        return await callAPI(instruction, 4000);
     }
 
     // ── DOM 생성 (한 번만) ──
